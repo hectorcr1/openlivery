@@ -28,6 +28,12 @@ export type Client = {
   updated_at: string;
 };
 
+export type AppointmentSettings = { id: string; client_id: string; enabled: boolean; timezone: string; min_notice_minutes: number; max_advance_days: number; cancellation_notice_minutes: number; reschedule_notice_minutes: number };
+export type AppointmentLocation = { id: string; client_id: string; name: string; address: string; timezone: string; is_active: boolean; created_at: string };
+export type AppointmentProfessional = { id: string; client_id: string; name: string; email: string; phone: string; is_active: boolean; location_ids: string[]; created_at: string };
+export type AppointmentService = { id: string; client_id: string; name: string; description: string; duration_minutes: number; buffer_before_minutes: number; buffer_after_minutes: number; is_active: boolean; created_at: string };
+export type Appointment = { id: string; client_id: string; location_id: string; professional_id: string; service_id: string; customer_phone: string; customer_name: string; customer_email: string; notes: string; source: string; status: string; starts_at: string; ends_at: string; external_id: string | null; created_at: string; updated_at: string };
+
 export type PortalUser = {
   id: string;
   name: string;

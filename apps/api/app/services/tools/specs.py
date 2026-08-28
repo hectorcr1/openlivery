@@ -6,6 +6,7 @@ consecutive underscores, so the "__" separator is unambiguous.
 """
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from ...models import AgentTool
@@ -22,6 +23,7 @@ class ToolSpec:
     input_schema: dict
     tool: AgentTool      # backing row
     mcp_tool_name: str | None = None  # unprefixed name on the MCP server
+    executor: Callable[[dict], tuple[str, bool]] | None = None
 
 
 def path_placeholders(url: str) -> list[str]:
@@ -74,6 +76,24 @@ def build_tool_specs(tools: list[AgentTool]) -> list[ToolSpec]:
                 )
             )
     return specs
+
+
+def build_appointment_specs(db, agent) -> list[ToolSpec]:
+    from ...modules.appointments.models import AppointmentSettings
+    from ...modules.appointments.tools import execute_appointment_tool
+    from sqlalchemy import select
+
+    enabled = db.scalar(select(AppointmentSettings.enabled).where(AppointmentSettings.client_id == agent.client_id))
+    if not enabled:
+        return []
+    definitions = [
+        ("appointments_find_availability", "Find available appointment slots. Use before booking or suggesting a time.", {"type": "object", "properties": {"service_id": {"type": "string"}, "date_from": {"type": "string", "description": "ISO datetime"}, "date_to": {"type": "string", "description": "ISO datetime"}, "location_id": {"type": "string"}, "professional_id": {"type": "string"}, "slot_minutes": {"type": "integer"}}, "required": ["service_id", "date_from", "date_to"]}),
+        ("appointments_book", "Book an appointment after confirming the selected slot and customer details.", {"type": "object", "properties": {"location_id": {"type": "string"}, "professional_id": {"type": "string"}, "service_id": {"type": "string"}, "starts_at": {"type": "string", "description": "ISO datetime"}, "customer_phone": {"type": "string"}, "customer_name": {"type": "string"}, "customer_email": {"type": "string"}, "notes": {"type": "string"}}, "required": ["location_id", "professional_id", "service_id", "starts_at", "customer_phone", "customer_name"]}),
+        ("appointments_get", "Get the details and status of an appointment.", {"type": "object", "properties": {"appointment_id": {"type": "string"}}, "required": ["appointment_id"]}),
+        ("appointments_reschedule", "Move an existing appointment to a new available slot.", {"type": "object", "properties": {"appointment_id": {"type": "string"}, "starts_at": {"type": "string", "description": "ISO datetime"}, "location_id": {"type": "string"}, "professional_id": {"type": "string"}, "service_id": {"type": "string"}}, "required": ["appointment_id", "starts_at"]}),
+        ("appointments_cancel", "Cancel an existing appointment after the customer confirms.", {"type": "object", "properties": {"appointment_id": {"type": "string"}}, "required": ["appointment_id"]}),
+    ]
+    return [ToolSpec(name, description, schema, None, executor=lambda args, name=name: execute_appointment_tool(db, agent.client_id, name, args)) for name, description, schema in definitions]
 
 
 def find_spec(specs: list[ToolSpec], name: str) -> ToolSpec | None:

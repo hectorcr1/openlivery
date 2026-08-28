@@ -20,6 +20,7 @@ from .routers import (
     whatsapp_cloud_webhook,
     widget,
 )
+from .modules.appointments.router import admin as appointments_admin, portal as appointments_portal
 
 
 settings = get_settings()
@@ -62,3 +63,5 @@ app.include_router(whatsapp_cloud.router, prefix="/api")
 app.include_router(whatsapp_cloud_webhook.public_router, prefix="/api")
 app.include_router(widget.router, prefix="/api")
 app.include_router(domains.public_router, prefix="/api")
+app.include_router(appointments_admin, prefix="/api")
+app.include_router(appointments_portal, prefix="/api")

@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Bot, Copy, ExternalLink, Globe2, ImagePlus, Inbox, LoaderCircle, MessageCircle, QrCode, Radio, Save, Settings2, ShieldAlert, ShieldCheck, Trash2, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Bot, CalendarDays, Copy, ExternalLink, Globe2, ImagePlus, Inbox, LoaderCircle, MessageCircle, QrCode, Radio, Save, Settings2, ShieldAlert, ShieldCheck, Trash2, UserRound } from "lucide-react";
 import { EmptyState, StatusBadge } from "@/components/ui";
 import { FormSkeleton, ListRowsSkeleton } from "@/components/skeleton";
 import { useToast } from "@/components/toast";
 import { api, messageFrom } from "@/lib/api";
 import { useT } from "@/lib/i18n";
-import type { Client, ClientDomain, Conversation, PortalUser } from "@/types";
+import type { AppointmentSettings, Client, ClientDomain, Conversation, PortalUser } from "@/types";
 
 type Tab = "details" | "agents" | "channels" | "inbox" | "portal";
 
@@ -72,8 +72,23 @@ export default function ClientDetailPage() {
 
     {tab === "inbox" && <ClientInbox clientId={client.id} />}
 
-    {tab === "portal" && <><form className="page-form" onSubmit={savePortal}><section className="form-section"><div className="section-copy"><h2>{t("clients.detail.portalTitle")}</h2><p>{t("clients.detail.portalCopy")}</p></div><div className="form-fields"><label>{t("clients.detail.portalTitleLabel")}<input name="portal_title" defaultValue={client.portal_title} placeholder={t("clients.detail.portalTitlePlaceholder", { name: client.name })} /></label><label>{t("clients.detail.portalUrl")}<div className="slug-input"><span>localhost:3000/portal/</span><input name="portal_slug" defaultValue={client.portal_slug} /></div></label><div className="url-preview"><code>{portalUrl}</code><button type="button" onClick={() => navigator.clipboard.writeText(portalUrl)}><Copy size={15} /> {t("clients.detail.copy")}</button>{client.portal_enabled && <a href={portalUrl} target="_blank"><ExternalLink size={15} /> {t("clients.detail.open")}</a>}</div><label className="switch-row"><span><strong>{t("clients.detail.publishPortal")}</strong><small>{t("clients.detail.publishPortalHint")}</small></span><input name="portal_enabled" type="checkbox" defaultChecked={client.portal_enabled} /></label></div></section><div className="form-footer"><button className="button primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />} {t("clients.detail.savePortal")}</button></div></form><PortalUsers clientId={client.id} /><PortalDomain clientId={client.id} /></>}
+    {tab === "portal" && <><form className="page-form" onSubmit={savePortal}><section className="form-section"><div className="section-copy"><h2>{t("clients.detail.portalTitle")}</h2><p>{t("clients.detail.portalCopy")}</p></div><div className="form-fields"><label>{t("clients.detail.portalTitleLabel")}<input name="portal_title" defaultValue={client.portal_title} placeholder={t("clients.detail.portalTitlePlaceholder", { name: client.name })} /></label><label>{t("clients.detail.portalUrl")}<div className="slug-input"><span>localhost:3000/portal/</span><input name="portal_slug" defaultValue={client.portal_slug} /></div></label><div className="url-preview"><code>{portalUrl}</code><button type="button" onClick={() => navigator.clipboard.writeText(portalUrl)}><Copy size={15} /> {t("clients.detail.copy")}</button>{client.portal_enabled && <a href={portalUrl} target="_blank"><ExternalLink size={15} /> {t("clients.detail.open")}</a>}</div><label className="switch-row"><span><strong>{t("clients.detail.publishPortal")}</strong><small>{t("clients.detail.publishPortalHint")}</small></span><input name="portal_enabled" type="checkbox" defaultChecked={client.portal_enabled} /></label></div></section><div className="form-footer"><button className="button primary" disabled={busy}>{busy ? <LoaderCircle className="spin" size={17} /> : <Save size={17} />} {t("clients.detail.savePortal")}</button></div></form><AppointmentsActivation clientId={client.id} /><PortalUsers clientId={client.id} /><PortalDomain clientId={client.id} /></>}
   </div>;
+}
+
+function AppointmentsActivation({ clientId }: { clientId: string }) {
+  const t = useT();
+  const toast = useToast();
+  const [settings, setSettings] = useState<AppointmentSettings | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { api<AppointmentSettings>(`/appointments/clients/${clientId}/settings`).then(setSettings).catch(() => {}); }, [clientId]);
+  async function toggle() {
+    if (!settings) return;
+    setBusy(true);
+    try { setSettings(await api<AppointmentSettings>(`/appointments/clients/${clientId}/settings`, { method: "PUT", body: JSON.stringify({ enabled: !settings.enabled, timezone: settings.timezone, min_notice_minutes: settings.min_notice_minutes, max_advance_days: settings.max_advance_days, cancellation_notice_minutes: settings.cancellation_notice_minutes, reschedule_notice_minutes: settings.reschedule_notice_minutes }) })); toast.success(t("appointments.enabled")); }
+    catch (err) { toast.error(messageFrom(err)); } finally { setBusy(false); }
+  }
+  return <section className="form-section"><div className="section-copy"><h2><CalendarDays size={17} /> {t("appointments.title")}</h2><p>{t("appointments.subtitle")}</p></div><div className="form-fields"><label className="switch-row"><span><strong>{settings?.enabled ? t("appointments.enabled") : t("appointments.enable")}</strong><small>{t("appointments.portalHint")}</small></span><button type="button" className={`button ${settings?.enabled ? "secondary" : "primary"}`} onClick={toggle} disabled={!settings || busy}>{settings?.enabled ? t("appointments.disable") : t("appointments.enable")}</button></label></div></section>;
 }
 
 function PortalUsers({ clientId }: { clientId: string }) {

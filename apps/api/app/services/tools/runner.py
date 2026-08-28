@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from ...models import Agent, AgentTool
 from ..ai import Completion, chat_completion
 from .loop import anthropic_tool_loop, openai_tool_loop
-from .specs import build_tool_specs
+from .specs import build_appointment_specs, build_tool_specs
 
 # Injected whenever the agent has tools: a failing tool must never be papered
 # over with the model's own knowledge.
@@ -45,7 +45,7 @@ async def run_completion(
 ) -> Completion:
     model = agent.model.strip()
     rows = db.scalars(select(AgentTool).where(AgentTool.agent_id == agent.id, AgentTool.enabled.is_(True))).all()
-    specs = build_tool_specs(list(rows))
+    specs = [*build_tool_specs(list(rows)), *build_appointment_specs(db, agent)]
     if not specs:
         return await chat_completion(agent.provider, base_url, api_key, model, messages, temperature=temperature, max_tokens=max_tokens)
     messages = _with_tool_rules(messages)

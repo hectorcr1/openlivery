@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BadgeCheck, Bot, Building2, FlaskConical, Globe, Images, Inbox, LoaderCircle, LogOut, MessageCircle, MessageSquareText, Search, Send, ShieldCheck, UserRound } from "lucide-react";
+import { BadgeCheck, Bot, Building2, CalendarDays, FlaskConical, Globe, Images, Inbox, LoaderCircle, LogOut, MessageCircle, MessageSquareText, Search, Send, ShieldCheck, UserRound } from "lucide-react";
 import { AttachButton, MessageAttachments, PendingAttachment, RecordButton, useFileDrop, type GalleryImage } from "@/components/attachments";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { MediaPanel } from "@/components/media-panel";
@@ -45,6 +46,7 @@ function PortalInbox({ slug, portal, logout }: { slug: string; portal: PortalPub
   const [tab, setTab] = useState<"all" | "human" | "ai">("all");
   const [search, setSearch] = useState("");
   const [mediaOpen, setMediaOpen] = useState(false);
+  const [appointmentsEnabled, setAppointmentsEnabled] = useState(false);
   const selectedIdRef = useRef<string | null>(null);
 
   const channelLabel = (value: string) => {
@@ -92,6 +94,7 @@ function PortalInbox({ slug, portal, logout }: { slug: string; portal: PortalPub
   }, [slug]);
 
   useEffect(() => { refresh().catch((err) => setError(messageFrom(err))); }, [refresh]);
+  useEffect(() => { api<{ enabled: boolean }>(`/portal/${slug}/appointments`).then((info) => setAppointmentsEnabled(info.enabled)).catch(() => {}); }, [slug]);
   useEffect(() => {
     const id = setInterval(() => { refresh().catch(() => {}); }, POLL_MS);
     return () => clearInterval(id);
@@ -130,7 +133,7 @@ function PortalInbox({ slug, portal, logout }: { slug: string; portal: PortalPub
     ),
     [selected, attachmentUrl],
   );
-  return <main className="portal-app" style={{ "--portal-color": portal.agency_brand_color } as React.CSSProperties}><aside className="portal-nav"><div className="portal-brand">{portal.client_logo_url || portal.agency_logo_url ? <img src={`${portal.client_logo_url || portal.agency_logo_url}`} alt="Logo" /> : <span>{portal.client_name.slice(0, 1)}</span>}<strong>{portal.client_name}</strong></div><nav><a className="active"><Inbox size={18} /> {t("portal.inbox.nav.inbox")}</a><a className="disabled"><Bot size={18} /> {t("portal.inbox.nav.agents")}</a></nav><LanguageSwitcher /><button onClick={logout}><LogOut size={17} /> {t("portal.inbox.nav.logout")}</button></aside><section className="portal-main"><header><div><small>{t("portal.inbox.header.eyebrow")}</small><h1>{portal.portal_title}</h1></div><span>{t("portal.inbox.header.conversationsCount", { count: items.length })}</span></header>{items.length ? <div className="portal-inbox"><aside>
+  return <main className="portal-app" style={{ "--portal-color": portal.agency_brand_color } as React.CSSProperties}><aside className="portal-nav"><div className="portal-brand">{portal.client_logo_url || portal.agency_logo_url ? <img src={`${portal.client_logo_url || portal.agency_logo_url}`} alt="Logo" /> : <span>{portal.client_name.slice(0, 1)}</span>}<strong>{portal.client_name}</strong></div><nav><a className="active"><Inbox size={18} /> {t("portal.inbox.nav.inbox")}</a><a className="disabled"><Bot size={18} /> {t("portal.inbox.nav.agents")}</a>{appointmentsEnabled && <Link href={`/portal/${slug}/appointments`}><CalendarDays size={18} /> {t("appointments.title")}</Link>}</nav><LanguageSwitcher /><button onClick={logout}><LogOut size={17} /> {t("portal.inbox.nav.logout")}</button></aside><section className="portal-main"><header><div><small>{t("portal.inbox.header.eyebrow")}</small><h1>{portal.portal_title}</h1></div><span>{t("portal.inbox.header.conversationsCount", { count: items.length })}</span></header>{items.length ? <div className="portal-inbox"><aside>
       <div className="inbox-search"><Search size={16} /><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("inbox.searchPlaceholder")} /></div>
       <div className="inbox-tabs">
         <button className={tab === "all" ? "active" : ""} onClick={() => setTab("all")}>{t("inbox.tabAll")}</button>
