@@ -9,6 +9,7 @@ import { ConfirmModal } from "@/components/confirm-modal";
 import type { AgentTool } from "@/types";
 import { HttpToolModal } from "./http-tool-modal";
 import { McpServerModal } from "./mcp-server-modal";
+import { GoogleCalendarIntegration } from "./google-calendar-integration";
 
 export function AgentToolsTab({ agentId, tools, onToolsChange }: {
   agentId: string;
@@ -43,7 +44,8 @@ export function AgentToolsTab({ agentId, tools, onToolsChange }: {
     onToolsChange(tools.filter((item) => item.id !== tool.id));
   }
 
-  return (
+  return (<>
+    <GoogleCalendarIntegration agentId={agentId} />
     <section className="panel tools-panel">
       <div className="panel-head">
         <div><h3>{t("tools.heading")}</h3><p>{t("tools.copy")}</p></div>
@@ -87,5 +89,5 @@ export function AgentToolsTab({ agentId, tools, onToolsChange }: {
         onClose={() => setConfirmDelete(null)}
       />}
     </section>
-  );
+  </>);
 }

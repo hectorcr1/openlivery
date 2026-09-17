@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 from ..config import get_settings
 from ..database import get_db
 from ..deps import get_current_user
-from ..models import Agent, AgentQA, AgentTool, Client, EscalationRule, KnowledgeChunk, KnowledgeDocument, PortalUser, Team, User, WhatsAppChannel, WhatsAppCloudChannel, WidgetChannel, now_utc
+from ..models import Agent, AgentGoogleCalendarTool, AgentQA, AgentTool, Client, EscalationRule, KnowledgeChunk, KnowledgeDocument, PortalUser, Team, User, WhatsAppChannel, WhatsAppCloudChannel, WidgetChannel, now_utc
 from ..schemas import AgentCreate, AgentOut, AgentPromptOut, AgentUpdate, DocumentOut, EscalationConfigIn, EscalationConfigOut, QAPairCreate, QAPairOut, check_reply_delay
 from ..services.knowledge import build_system_prompt, embed_document_chunks, reindex_agent, reindex_document
 
@@ -77,6 +77,7 @@ def update_agent(agent_id: uuid.UUID, payload: AgentUpdate, db: Session = Depend
     agent = _agent(db, user, agent_id)
     values = payload.model_dump(exclude_unset=True)
     client_id = values.get("client_id", agent.client_id)
+    client_changed = client_id != agent.client_id
     if client_id != agent.client_id and _channels_of(db, agent):
         raise HTTPException(
             status_code=409,
@@ -92,6 +93,11 @@ def update_agent(agent_id: uuid.UUID, payload: AgentUpdate, db: Session = Depend
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     for key, value in values.items():
         setattr(agent, key, value)
+    # Calendar permissions are meaningful only for the client whose OAuth
+    # grant they were configured against. Moving an agent must never carry
+    # those permissions onto another client's calendar connection.
+    if client_changed:
+        db.execute(delete(AgentGoogleCalendarTool).where(AgentGoogleCalendarTool.agent_id == agent.id))
     db.commit()
     return _agent(db, user, agent_id)
 
@@ -110,7 +116,7 @@ def delete_agent(agent_id: uuid.UUID, db: Session = Depends(get_db), user: User 
             status_code=409,
             detail="This agent answers a channel of its client. Assign another agent to it before deleting this one.",
         )
-    for model in (AgentTool, AgentQA, KnowledgeChunk, KnowledgeDocument, EscalationRule):
+    for model in (AgentTool, AgentGoogleCalendarTool, AgentQA, KnowledgeChunk, KnowledgeDocument, EscalationRule):
         db.execute(delete(model).where(model.agent_id == agent.id))
     for field in ("instructions", "personality", "brief_summary", "brief_products", "brief_audience", "brief_policies", "brief_dos", "brief_donts"):
         setattr(agent, field, "")

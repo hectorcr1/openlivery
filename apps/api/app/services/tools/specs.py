@@ -7,7 +7,7 @@ consecutive underscores, so the "__" separator is unambiguous.
 
 import re
 from dataclasses import dataclass, field
-from typing import Callable
+from typing import Awaitable, Callable
 
 from ...models import AgentTool
 
@@ -27,6 +27,7 @@ class ToolSpec:
     # returns (result_text, is_error). It must not do I/O; side effects are
     # recorded and applied by the caller after the loop finishes.
     handler: Callable[[dict], tuple[str, bool]] | None = None
+    async_handler: Callable[[dict], Awaitable[tuple[str, bool]]] | None = None
 
 
 def path_placeholders(url: str) -> list[str]:

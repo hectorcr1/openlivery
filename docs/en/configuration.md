@@ -31,6 +31,24 @@ For a non-Docker local setup, the same variables go in a `.env` at the repo root
 | `WHATSAPP_BRIDGE_TOKEN` | Shared secret authenticating backend ↔ WhatsApp bridge calls. Use the same value on both | random |
 | `NEXT_PUBLIC_API_URL` | Public API origin baked into the frontend at build time. Leave empty to use the same origin via the gateway | empty |
 | `BACKEND_INTERNAL_URL` | How the web container reaches the API server-side (used by `proxy.ts` for custom portal domains) | `http://api:8000` |
+| `GOOGLE_CALENDAR_CLIENT_ID` | OAuth Web application client ID for client Calendar connections | empty |
+| `GOOGLE_CALENDAR_CLIENT_SECRET` | Matching OAuth client secret | empty |
+| `GOOGLE_CALENDAR_PUBLIC_URL` | Public HTTPS origin used for the OAuth callback; defaults to `FRONTEND_URL` | `FRONTEND_URL` |
+
+### Google Calendar OAuth
+
+Create a **Web application** OAuth client in Google Cloud, enable Google
+Calendar API, and register this exact authorized redirect URI:
+
+```text
+https://your-public-origin/api/calendar/oauth/callback
+```
+
+Set `GOOGLE_CALENDAR_PUBLIC_URL` to that public origin when it differs from
+`FRONTEND_URL`. The connection is stored once for a client and the agent
+Integrations tab controls which Calendar API methods each individual agent can
+call. Calendar access and refresh tokens are encrypted at rest with
+`ENCRYPTION_KEY`.
 
 ### The ENCRYPTION_KEY warning
 

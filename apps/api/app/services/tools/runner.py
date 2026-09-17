@@ -12,10 +12,12 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...models import Agent, AgentTool
+from ...models import Agent, AgentGoogleCalendarTool, AgentTool
 from ..ai import Completion, chat_completion
 from .loop import tool_loop
 from .specs import build_tool_specs
+from .google_calendar_specs import build_google_calendar_specs
+from ..google_calendar import connection_for_agent
 
 # Injected whenever the agent has tools: a failing tool must never be papered
 # over with the model's own knowledge.
@@ -48,7 +50,14 @@ async def run_completion(
 ) -> Completion:
     model = agent.model.strip()
     rows = db.scalars(select(AgentTool).where(AgentTool.agent_id == agent.id, AgentTool.enabled.is_(True))).all()
-    specs = build_tool_specs(list(rows)) + list(extra_specs or [])
+    specs = build_tool_specs(list(rows))
+    calendar_connection = connection_for_agent(db, agent)
+    if calendar_connection and calendar_connection.status == "connected":
+        enabled_calendar_tools = set(db.scalars(select(AgentGoogleCalendarTool.name).where(
+            AgentGoogleCalendarTool.agent_id == agent.id, AgentGoogleCalendarTool.enabled.is_(True)
+        )))
+        specs.extend(build_google_calendar_specs(db, calendar_connection, enabled_calendar_tools))
+    specs += list(extra_specs or [])
     started = time.perf_counter()
     if not specs:
         completion = await chat_completion(agent.provider, base_url, api_key, model, messages, temperature=temperature, max_tokens=max_tokens)

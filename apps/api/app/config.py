@@ -58,6 +58,13 @@ class Settings(BaseSettings):
     # Public HTTPS origin; defaults to frontend_url when left empty.
     social_public_url: str = ""
     social_oauth_state_minutes: int = 10
+    # Google Calendar OAuth application credentials. Configure the callback URL
+    # shown below in Google Cloud Console: {google_calendar_public_url or
+    # frontend_url}/api/calendar/oauth/callback.
+    google_calendar_client_id: str = ""
+    google_calendar_client_secret: str = ""
+    google_calendar_public_url: str = ""
+    google_calendar_oauth_state_minutes: int = 10
 
     # Conversations the AI is answering resolve themselves after this many
     # hours without a message from either side. Conversations a person took

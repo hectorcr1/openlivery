@@ -131,6 +131,16 @@ export type AgentTool = {
   created_at: string;
   updated_at: string;
 };
+export type GoogleCalendarIntegration = {
+  provider: "google_calendar";
+  connected: boolean;
+  status: "connected" | "disconnected" | "error";
+  oauth_ready: boolean;
+  enabled_tools: string[];
+  last_error: string | null;
+  last_connected_at: string | null;
+};
+export type GoogleCalendarTool = { name: string; description: string; read_only: boolean; enabled: boolean };
 export type ToolCallMeta = { name: string; arguments: Record<string, unknown>; result_preview: string; is_error: boolean };
 
 export type Source = { id: string; filename: string; excerpt: string };
