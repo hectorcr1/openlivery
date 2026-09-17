@@ -106,6 +106,9 @@ class Client(Base):
     google_calendar_connection: Mapped["GoogleCalendarConnection | None"] = relationship(
         back_populates="client", cascade="all, delete-orphan", uselist=False
     )
+    google_sheets_connection: Mapped["GoogleSheetsConnection | None"] = relationship(
+        back_populates="client", cascade="all, delete-orphan", uselist=False
+    )
 
     @property
     def logo_url(self) -> str | None:
@@ -209,6 +212,9 @@ class Agent(Base):
     google_calendar_tools: Mapped[list["AgentGoogleCalendarTool"]] = relationship(
         back_populates="agent", cascade="all, delete-orphan"
     )
+    google_sheets_tools: Mapped[list["AgentGoogleSheetsTool"]] = relationship(
+        back_populates="agent", cascade="all, delete-orphan"
+    )
 
 
 class GoogleCalendarConnection(Base):
@@ -253,6 +259,60 @@ class GoogleCalendarOAuthState(Base):
     """One-use OAuth state, persisted so the callback does not need a cookie."""
 
     __tablename__ = "google_calendar_oauth_states"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    state_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agents.id", ondelete="CASCADE"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    next_path: Mapped[str] = mapped_column(String(500))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+
+
+class GoogleSheetsConnection(Base):
+    """One Google Sheets OAuth grant per client. Tokens never leave the API."""
+
+    __tablename__ = "google_sheets_connections"
+    __table_args__ = (UniqueConstraint("client_id", name="uq_google_sheets_connection_client"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agency_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agencies.id", ondelete="CASCADE"), index=True)
+    client_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("clients.id", ondelete="CASCADE"), index=True)
+    encrypted_access_token: Mapped[str] = mapped_column(Text)
+    encrypted_refresh_token: Mapped[str] = mapped_column(Text)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    granted_scopes: Mapped[list] = mapped_column(JSON, default=list)
+    status: Mapped[str] = mapped_column(String(20), default="connected")
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_connected_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    client: Mapped[Client] = relationship(back_populates="google_sheets_connection")
+
+
+class AgentGoogleSheetsTool(Base):
+    """Per-agent allow-list for the client Google Sheets grant."""
+
+    __tablename__ = "agent_google_sheets_tools"
+    __table_args__ = (UniqueConstraint("agent_id", "name", name="uq_agent_google_sheets_tool"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
+    agent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("agents.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(64))
+    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc, onupdate=now_utc)
+
+    agent: Mapped[Agent] = relationship(back_populates="google_sheets_tools")
+
+
+class GoogleSheetsOAuthState(Base):
+    """One-use Sheets OAuth state, persisted so the callback needs no cookie."""
+
+    __tablename__ = "google_sheets_oauth_states"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=new_uuid)
     state_hash: Mapped[str] = mapped_column(String(64), unique=True, index=True)

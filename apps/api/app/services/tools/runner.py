@@ -12,12 +12,14 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ...models import Agent, AgentGoogleCalendarTool, AgentTool
+from ...models import Agent, AgentGoogleCalendarTool, AgentGoogleSheetsTool, AgentTool
 from ..ai import Completion, chat_completion
 from .loop import tool_loop
 from .specs import build_tool_specs
 from .google_calendar_specs import build_google_calendar_specs
 from ..google_calendar import connection_for_agent
+from .google_sheets_specs import build_google_sheets_specs
+from ..google_sheets import connection_for_agent as sheets_connection_for_agent
 
 # Injected whenever the agent has tools: a failing tool must never be papered
 # over with the model's own knowledge.
@@ -57,6 +59,12 @@ async def run_completion(
             AgentGoogleCalendarTool.agent_id == agent.id, AgentGoogleCalendarTool.enabled.is_(True)
         )))
         specs.extend(build_google_calendar_specs(db, calendar_connection, enabled_calendar_tools))
+    sheets_connection = sheets_connection_for_agent(db, agent)
+    if sheets_connection and sheets_connection.status == "connected":
+        enabled_sheets_tools = set(db.scalars(select(AgentGoogleSheetsTool.name).where(
+            AgentGoogleSheetsTool.agent_id == agent.id, AgentGoogleSheetsTool.enabled.is_(True)
+        )))
+        specs.extend(build_google_sheets_specs(db, sheets_connection, enabled_sheets_tools))
     specs += list(extra_specs or [])
     started = time.perf_counter()
     if not specs:

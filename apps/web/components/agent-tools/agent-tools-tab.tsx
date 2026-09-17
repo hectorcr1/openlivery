@@ -10,6 +10,7 @@ import type { AgentTool } from "@/types";
 import { HttpToolModal } from "./http-tool-modal";
 import { McpServerModal } from "./mcp-server-modal";
 import { GoogleCalendarIntegration } from "./google-calendar-integration";
+import { GoogleSheetsIntegration } from "./google-sheets-integration";
 
 export function AgentToolsTab({ agentId, tools, onToolsChange }: {
   agentId: string;
@@ -46,6 +47,7 @@ export function AgentToolsTab({ agentId, tools, onToolsChange }: {
 
   return (<>
     <GoogleCalendarIntegration agentId={agentId} />
+    <GoogleSheetsIntegration agentId={agentId} />
     <section className="panel tools-panel">
       <div className="panel-head">
         <div><h3>{t("tools.heading")}</h3><p>{t("tools.copy")}</p></div>

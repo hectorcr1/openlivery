@@ -2,8 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -17,7 +16,6 @@ from .agents import _agent
 
 
 router = APIRouter(prefix="/agents/{agent_id}/integrations/google-calendar", tags=["Google Calendar"])
-callback_router = APIRouter(prefix="/calendar/oauth", tags=["Google Calendar"])
 
 
 def _enabled_names(db: Session, agent_id: uuid.UUID) -> list[str]:
@@ -82,12 +80,3 @@ def disconnect(agent_id: uuid.UUID, db: Session = Depends(get_db), user: User = 
     connection = google_calendar.connection_for_agent(db, agent)
     if connection:
         google_calendar.disconnect(db, connection)
-
-
-@callback_router.get("/callback")
-async def oauth_callback(
-    state: str = Query(max_length=256), code: str | None = Query(default=None, max_length=8192),
-    error: str | None = Query(default=None, max_length=256), db: Session = Depends(get_db),
-):
-    target = await google_calendar.finish_oauth(db, state, code, error)
-    return RedirectResponse(target, status_code=303, headers={"Cache-Control": "no-store", "Referrer-Policy": "no-referrer"})

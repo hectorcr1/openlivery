@@ -5,6 +5,7 @@ from app.models import GoogleCalendarConnection
 from app.security import encrypt_secret
 from app.services import google_calendar
 from app.services.tools.google_calendar_specs import GOOGLE_CALENDAR_TOOLS, build_google_calendar_specs
+from app.services.tools.google_sheets_specs import GOOGLE_SHEETS_TOOLS, build_google_sheets_specs
 
 
 def _agent(client: TestClient, customer_id: str, name: str) -> str:
@@ -64,11 +65,19 @@ def test_calendar_specs_only_expose_the_permitted_functions():
 
 def test_callback_url_accepts_an_origin_or_a_complete_callback_url(monkeypatch):
     settings = SimpleNamespace(
-        google_calendar_public_url="https://openlivery.example/api/calendar/oauth/callback",
+        google_public_url="https://openlivery.example/api/google/oauth/callback",
         frontend_url="http://localhost:3000",
     )
     monkeypatch.setattr(google_calendar, "get_settings", lambda: settings)
-    assert google_calendar.callback_url() == "https://openlivery.example/api/calendar/oauth/callback"
+    assert google_calendar.callback_url() == "https://openlivery.example/api/google/oauth/callback"
 
-    settings.google_calendar_public_url = "https://openlivery.example"
-    assert google_calendar.callback_url() == "https://openlivery.example/api/calendar/oauth/callback"
+    settings.google_public_url = "https://openlivery.example"
+    assert google_calendar.callback_url() == "https://openlivery.example/api/google/oauth/callback"
+
+
+def test_sheets_specs_expose_only_the_permitted_functions():
+    permitted = {"google_sheets_values_get", "google_sheets_values_update"}
+    specs = build_google_sheets_specs(None, None, permitted)
+    assert len(GOOGLE_SHEETS_TOOLS) == 17
+    assert [spec.name for spec in specs] == ["google_sheets_values_get", "google_sheets_values_update"]
+    assert all(spec.async_handler is not None for spec in specs)

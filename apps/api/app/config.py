@@ -58,9 +58,15 @@ class Settings(BaseSettings):
     # Public HTTPS origin; defaults to frontend_url when left empty.
     social_public_url: str = ""
     social_oauth_state_minutes: int = 10
-    # Google Calendar OAuth application credentials. Configure the callback URL
-    # shown below in Google Cloud Console: {google_calendar_public_url or
-    # frontend_url}/api/calendar/oauth/callback.
+    # Shared Google OAuth web application credentials. Configure both callback
+    # URL in Google Cloud Console: {google_oauth_public_url or frontend_url}
+    # /api/google/oauth/callback.
+    google_oauth_client_id: str = ""
+    google_oauth_client_secret: str = ""
+    google_oauth_public_url: str = ""
+    google_oauth_state_minutes: int = 10
+    # Deprecated names kept only so existing installations can upgrade without
+    # breaking their configured Calendar connection.
     google_calendar_client_id: str = ""
     google_calendar_client_secret: str = ""
     google_calendar_public_url: str = ""
@@ -85,6 +91,22 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @property
+    def google_client_id(self) -> str:
+        return self.google_oauth_client_id or self.google_calendar_client_id
+
+    @property
+    def google_client_secret(self) -> str:
+        return self.google_oauth_client_secret or self.google_calendar_client_secret
+
+    @property
+    def google_public_url(self) -> str:
+        return self.google_oauth_public_url or self.google_calendar_public_url
+
+    @property
+    def google_state_minutes(self) -> int:
+        return self.google_oauth_state_minutes if self.google_oauth_client_id else self.google_calendar_oauth_state_minutes
 
 
 @lru_cache
