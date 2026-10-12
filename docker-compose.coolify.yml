@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: '${POSTGRES_USER:-openlivery}'
       POSTGRES_PASSWORD: '${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}'
     volumes:
-      - 'postgres_data:/var/lib/postgresql/data'
+      - 'postgres_data_v2:/var/lib/postgresql/data'
     healthcheck:
       test:
         - CMD-SHELL
@@ -177,7 +177,7 @@ configs:
   gateway:
     file: ./docker/Caddyfile
 volumes:
-  postgres_data: null
+  postgres_data_v2: null
   backend_storage: null
   n8n_postgres_data: null
   n8n_data: null
