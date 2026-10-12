@@ -1834,6 +1834,68 @@ input:focus, textarea:focus, select:focus, .phone-input:focus-within { border-co
 .tool-error-details small { display: inline-flex; align-items: baseline; gap: 5px; padding: 6px 9px; color: var(--red-text); background: var(--red-soft); border: 1px solid var(--red-line); border-radius: 7px; font-size: 12px; line-height: 1.5; word-break: break-word; }
 .tool-error-details small svg { flex: 0 0 auto; align-self: center; }
 
+/* Agency connectors stay visually distinct from an agent's one-off tools. */
+.composio-panel { overflow: hidden; }
+.composio-panel .panel-head { align-items: flex-start; }
+.composio-panel .panel-head .button { white-space: nowrap; }
+.composio-notice { display: flex; align-items: center; gap: 12px; margin: 18px; padding: 17px 19px; border: 1px solid var(--accent-line); border-radius: 12px; background: var(--accent-soft); color: var(--accent-text); font-size: 13px; }
+.composio-notice > div { display: flex; flex-direction: column; gap: 3px; }
+.composio-notice strong { color: var(--ink); }
+.composio-notice span { color: var(--ink-2); }
+.composio-installed { border-top: 1px solid var(--line-soft); }
+.composio-installed-row { display: flex; align-items: center; gap: 14px; padding: 14px 19px; border-bottom: 1px solid var(--line-soft); }
+.composio-installed-row:last-child { border-bottom: 0; }
+.composio-monogram { display: grid; place-items: center; flex: 0 0 40px; width: 40px; height: 40px; border: 1px solid var(--accent-line); border-radius: 11px; color: var(--accent-text); background: var(--accent-soft); font-size: 19px; font-weight: 750; line-height: 1; }
+.composio-installed-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.composio-installed-main strong { color: var(--ink); font-size: 13px; }
+.composio-installed-main small { color: var(--muted); font-size: 12px; }
+.composio-installed-actions { display: flex; align-items: center; gap: 7px; }
+.composio-installed-actions .button { min-height: 34px; padding: 0 11px; font-size: 12px; }
+.composio-catalog { border-top: 1px solid var(--line); background: var(--surface-2); }
+.composio-catalog-controls { display: flex; gap: 10px; align-items: center; padding: 15px 18px; }
+.composio-search { display: flex; align-items: center; gap: 9px; flex: 1; min-width: 0; padding: 0 12px; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); background: var(--surface); }
+.composio-search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.composio-search input { width: 100%; height: 39px; padding: 0; border: 0; outline: 0; background: transparent; color: var(--ink); font-size: 13px; }
+.composio-category { position: relative; display: flex; align-items: center; min-width: 180px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+.composio-category select { width: 100%; height: 39px; padding: 0 28px 0 12px; border: 0; background: transparent; appearance: none; color: var(--ink-2); font-size: 12px; cursor: pointer; }
+.composio-category svg { position: absolute; right: 10px; pointer-events: none; color: var(--muted); }
+.composio-directory { max-height: 540px; overflow-y: auto; margin: 0 18px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
+.composio-directory-row { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 13px; padding: 13px 15px; }
+.composio-directory-row + .composio-directory-row { border-top: 1px solid var(--line-soft); }
+.composio-directory-row > div { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.composio-directory-row strong { color: var(--ink); font-size: 13px; }
+.composio-directory-row small { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); font-size: 12px; }
+.composio-directory-row div > span { color: var(--subtle); font-size: 11px; }
+.composio-directory-row .button { min-height: 32px; padding: 0 10px; white-space: nowrap; font-size: 12px; }
+.composio-directory-empty { padding: 25px; color: var(--muted); text-align: center; font-size: 13px; }
+.composio-more { display: flex; margin: 14px auto 16px; }
+.composio-tool-modal { padding: 0 22px 20px; }
+.composio-tool-count { padding: 13px 0; color: var(--muted); font-size: 12px; font-weight: 650; }
+.composio-tool-list { max-height: 470px; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; }
+.composio-tool-row { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 11px 13px; cursor: pointer; }
+.composio-tool-row + .composio-tool-row { border-top: 1px solid var(--line-soft); }
+.composio-tool-row.disabled { opacity: .55; cursor: not-allowed; }
+.composio-tool-row input { margin-top: 3px; accent-color: var(--accent); }
+.composio-tool-row > span:nth-child(2) { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.composio-tool-row strong { color: var(--ink); font-size: 12px; }
+.composio-tool-row small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.composio-tool-row em { color: var(--subtle); font-size: 10px; font-style: normal; }
+.composio-tool-row .pill { min-height: 19px; white-space: nowrap; font-size: 11px; }
+.composio-modal-actions { display: flex; justify-content: flex-end; gap: 9px; padding-top: 16px; }
+@media (max-width: 720px) {
+  .composio-panel .panel-head { flex-direction: column; align-items: stretch; }
+  .composio-panel .panel-head .button { align-self: flex-start; }
+  .composio-installed-row { flex-wrap: wrap; }
+  .composio-installed-row .pill { order: 3; }
+  .composio-installed-actions { flex-basis: 100%; padding-left: 54px; }
+  .composio-catalog-controls { flex-direction: column; align-items: stretch; }
+  .composio-search, .composio-category { width: 100%; }
+  .composio-directory-row { grid-template-columns: 40px minmax(0, 1fr); }
+  .composio-directory-row .button { grid-column: 2; justify-self: start; }
+  .composio-tool-row { grid-template-columns: 18px minmax(0, 1fr); }
+  .composio-tool-row .pill { grid-column: 2; justify-self: start; }
+}
+
 /* Skeletons. Shown while a section has not loaded yet, so a genuine empty state
    never flashes before its data arrives. Sized against the real markup above so
    swapping in the content causes no layout shift. */

@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     # addresses are rejected. Enable only on self-hosted deployments that need
     # tools to reach internal services.
     tools_allow_private_urls: bool = False
+    # Optional project key for the deployment-managed integration catalog.
+    composio_api_key: str = ""
     storage_dir: Path = APP_DIR / "storage"
     backend_url: str = "http://localhost:8000"
     whatsapp_bridge_url: str = "http://localhost:3101"

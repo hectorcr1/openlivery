@@ -88,6 +88,14 @@ def update_agent(agent_id: uuid.UUID, payload: AgentUpdate, db: Session = Depend
             status_code=409,
             detail="This agent answers a channel of its client. Assign another agent to it before changing the client.",
         )
+    if client_id != agent.client_id:
+        from ..extensions.composio_integrations.models import ComposioAssignment
+
+        if db.scalar(select(ComposioAssignment.id).where(ComposioAssignment.agent_id == agent.id)):
+            raise HTTPException(
+                status_code=409,
+                detail="Remove the agent's connected integrations before changing its client.",
+            )
     _validate_client(db, user, client_id)
     try:
         check_reply_delay(
@@ -96,6 +104,13 @@ def update_agent(agent_id: uuid.UUID, payload: AgentUpdate, db: Session = Depend
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if client_id != agent.client_id:
+        from ..extensions.composio_integrations.cleanup import revoke_agent_attempts
+
+        try:
+            revoke_agent_attempts(db, agent.id)
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail="Could not close a pending integration authorization") from exc
     for key, value in values.items():
         setattr(agent, key, value)
     db.commit()
@@ -116,6 +131,19 @@ def delete_agent(agent_id: uuid.UUID, db: Session = Depends(get_db), user: User 
             status_code=409,
             detail="This agent answers a channel of its client. Assign another agent to it before deleting this one.",
         )
+    from ..extensions.composio_integrations.models import ComposioAssignment
+
+    if db.scalar(select(ComposioAssignment.id).where(ComposioAssignment.agent_id == agent.id)):
+        raise HTTPException(
+            status_code=409,
+            detail="Remove the agent's connected integrations before deleting this agent.",
+        )
+    from ..extensions.composio_integrations.cleanup import revoke_agent_attempts
+
+    try:
+        revoke_agent_attempts(db, agent.id)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Could not close a pending integration authorization") from exc
     for model in (AgentTool, AgentQA, KnowledgeChunk, KnowledgeDocument, EscalationRule, AgentCaptureField):
         db.execute(delete(model).where(model.agent_id == agent.id))
     agent.capture_enabled = False

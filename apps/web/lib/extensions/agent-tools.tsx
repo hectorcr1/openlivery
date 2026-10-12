@@ -1,13 +1,11 @@
 // Extension points of the agent editor's tools tab.
 //
-// A deployment that manages some of an agent's tools on its behalf (a
-// directory of connectors it provisions, say) keeps those out of the custom
-// tools list and renders its own section under it. It does so by replacing
-// this file at build time; the core ships it inert, and the editor reads it
-// through this one import so nothing else in the page has to change.
+// Keep managed integrations out of the custom tools list and render their
+// catalog through this single extension point in the agent editor.
 
 import type { ComponentType } from "react";
 import type { AgentTool } from "@/types";
+import { ComposioSection } from "@/components/composio/composio-section";
 
 export type ManagedToolsSection = ComponentType<{
   agentId: string;
@@ -21,6 +19,6 @@ export const agentToolsExtensions: {
   /** Rendered under the custom tools list, or nothing. */
   ManagedSection: ManagedToolsSection | null;
 } = {
-  isManaged: () => false,
-  ManagedSection: null,
+  isManaged: (tool) => /^c[1-9][0-9]?$/.test(tool.name) && tool.description.startsWith("Composio: "),
+  ManagedSection: ComposioSection,
 };

@@ -11,6 +11,7 @@ cryptography==50.0.0
 pypdf==6.14.2
 httpx==0.28.1
 mcp==1.28.1
+composio==0.17.1
 dnspython==2.7.0
 email-validator==2.2.0
 # The slim base image ships only a partial system zoneinfo database, so

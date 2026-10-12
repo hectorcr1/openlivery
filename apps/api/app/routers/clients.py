@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
@@ -53,6 +54,7 @@ from ..slugs import slugify, unique_slug
 
 
 router = APIRouter(prefix="/clients", tags=["Clients"])
+logger = logging.getLogger("openlivery.composio")
 MAX_LOGO_BYTES = 2 * 1024 * 1024
 ALLOWED_LOGO_TYPES = {"image/png", "image/jpeg", "image/webp", "image/svg+xml"}
 
@@ -263,6 +265,33 @@ async def delete_client(client_id: uuid.UUID, db: Session = Depends(get_db), use
     from ..services.social_connections import disconnect_channel
     for channel in db.scalars(select(SocialChannel).where(SocialChannel.client_id == client.id)).all():
         await disconnect_channel(db, channel)
+    # Revoke third-party access before the local cascade removes account IDs.
+    import anyio
+    from ..extensions.composio_integrations import service as composio_service
+    from ..extensions.composio_integrations.cleanup import revoke_client_attempts
+    from ..extensions.composio_integrations.models import ComposioAssignment, ComposioConnection
+    try:
+        await revoke_client_attempts(db, client.id)
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail="Could not close a pending integration authorization") from exc
+    for connection in db.scalars(select(ComposioConnection).where(
+        ComposioConnection.agency_id == user.agency_id,
+        ComposioConnection.client_id == client.id,
+    )).all():
+        assignments = db.scalars(select(ComposioAssignment).join(Agent, Agent.id == ComposioAssignment.agent_id).where(
+            ComposioAssignment.agency_id == user.agency_id,
+            Agent.client_id == client.id,
+            ComposioAssignment.toolkit_slug == connection.toolkit_slug,
+        )).all()
+        try:
+            for assignment in assignments:
+                try:
+                    await anyio.to_thread.run_sync(composio_service.delete_session, assignment.session_id)
+                except Exception:  # The account revocation still disables these sessions.
+                    logger.warning("Could not remove a Composio session before client deletion")
+            await anyio.to_thread.run_sync(composio_service.delete_account, connection.account_id)
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail="Could not revoke a client integration; retry before deleting the client") from exc
     db.delete(client)
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

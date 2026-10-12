@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import get_settings
 from .database import new_session
 from .services.conversation_state import resolve_idle_ai_conversations
+from .extensions.composio_integrations import models as composio_models  # noqa: F401
+from .extensions.composio_integrations import router as composio_integrations
 from .routers import (
     agency,
     agent_tools,
@@ -38,6 +40,7 @@ settings = get_settings()
 logger = logging.getLogger(__name__)
 
 AUTO_RESOLVE_SWEEP_SECONDS = 15 * 60
+COMPOSIO_AUTH_SWEEP_SECONDS = 15 * 60
 
 
 async def _auto_resolve_loop() -> None:
@@ -66,17 +69,29 @@ async def _follow_up_loop() -> None:
             logger.exception("Follow-up sweep failed")
 
 
+async def _composio_auth_loop() -> None:
+    from .extensions.composio_integrations.cleanup import sweep_expired_attempts
+
+    while True:
+        await asyncio.sleep(COMPOSIO_AUTH_SWEEP_SECONDS)
+        try:
+            await sweep_expired_attempts()
+        except Exception as exc:
+            logger.warning("Composio authorization cleanup failed: %s", type(exc).__name__)
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     from .services.social_worker import start_worker, stop_worker
     start_worker()
     sweeper = asyncio.create_task(_auto_resolve_loop()) if settings.auto_resolve_after_hours > 0 else None
     follow_ups = asyncio.create_task(_follow_up_loop()) if settings.follow_up_sweep_seconds > 0 else None
+    composio_auth = asyncio.create_task(_composio_auth_loop()) if settings.composio_api_key else None
     try:
         yield
     finally:
         await stop_worker()
-        for task in (sweeper, follow_ups):
+        for task in (sweeper, follow_ups, composio_auth):
             if task:
                 task.cancel()
 
@@ -111,6 +126,7 @@ app.include_router(industries.router, prefix="/api")
 app.include_router(agents.router, prefix="/api")
 app.include_router(webchat.router, prefix="/api")
 app.include_router(agent_tools.router, prefix="/api")
+app.include_router(composio_integrations.router, prefix="/api")
 app.include_router(providers.router, prefix="/api")
 app.include_router(catalog.router, prefix="/api")
 app.include_router(conversations.router, prefix="/api")
